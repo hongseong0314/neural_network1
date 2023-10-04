@@ -29,7 +29,7 @@ class Trainer():
         pass
     
     def setup(self):
-        create_directory(self.args.save_dict + '_stop')
+        create_directory(self.args.save_dict)
         
         # model setup
         self.model = self.get_model(model=self.args.model_class, pretrained=self.args.pretrained)
@@ -57,7 +57,7 @@ class Trainer():
             train_dataset,
             batch_size = self.args.BATCH_SIZE,
             shuffle = True,
-            num_workers = 8,
+            # num_workers = 8,
         )
         valid_dataset = self.args.Dataset(self.args.valid_dir, self.args.valid_df, mode='test')
         
@@ -65,7 +65,7 @@ class Trainer():
             valid_dataset,
             batch_size = int(self.args.BATCH_SIZE / 2),
             shuffle = False,
-            num_workers = 4,
+            # num_workers = 4,
         )
 
     def fit(self):
@@ -112,7 +112,7 @@ class Trainer():
                     # 모델 저장
                     if best_loss > np.average(valid_losses):
                         best_loss = np.average(valid_losses)
-                        create_directory(self.args.save_dict)
+                        # create_directory(self.args.save_dict)
                         
                         # model_name_bagging_kfold_bestmodel_valid loss로 이름 지정
                         best_model_name = self.args.save_dict + "/model_{}_{}_{:.4f}.pth".format(self.args.CODER, b, best_loss)
@@ -196,46 +196,45 @@ class Trainer():
                                     )
         return label_list, pred_list
     
-    def validing(self, valid_data_loader_list, epoch):
+    def validing(self, valid_data_loader, epoch):
         valid_dis_acc_list = []
         valid_losses = []
         self.model.eval()
         pred_list, label_list = [], []
-        for valid_data_loader in valid_data_loader_list:
-            with tqdm(valid_data_loader,total=valid_data_loader.__len__(), unit="batch") as valid_bar:
-                for batch_idx, batch_data in enumerate(valid_bar):
-                    valid_bar.set_description(f"Valid Epoch {epoch}")
-                    images, dis_label, crop_label = batch_data['image'], batch_data['disease_label'], batch_data['crop_label']
-                    images, dis_label, crop_label = Variable(images.cuda()), Variable(dis_label.cuda()), Variable(crop_label.cuda())
-                
-                    with torch.no_grad():
-                        if self.args.aware:
-                            dis_out  = self.model(images, crop_label) 
-                        else:
-                            dis_out  = self.model(images) 
-                        
-                        # loss 계산
-                        dis_loss = self.criterion(dis_out, dis_label)
-                        valid_loss = dis_loss
-
-                        dis_out = torch.argmax(dis_out, dim=1).detach().cpu()
-                        dis_label =dis_label.detach().cpu()
-                        
-                        pred_list.extend(dis_out.numpy())
-                        label_list.extend(dis_label.numpy())
-
-                    # accuracy_score(dis_label, dis_out)
-                    dis_acc = (dis_out == dis_label).to(torch.float).numpy().mean()
-
-                    # print(dis_acc, crop_acc)
-                    valid_dis_acc_list.append(dis_acc)
-
-                    valid_losses.append(valid_loss.item())
-                    valid_dis_acc = np.mean(valid_dis_acc_list)
+        with tqdm(valid_data_loader,total=valid_data_loader.__len__(), unit="batch") as valid_bar:
+            for batch_idx, batch_data in enumerate(valid_bar):
+                valid_bar.set_description(f"Valid Epoch {epoch}")
+                images, dis_label, crop_label = batch_data['image'], batch_data['disease_label'], batch_data['crop_label']
+                images, dis_label, crop_label = Variable(images.cuda()), Variable(dis_label.cuda()), Variable(crop_label.cuda())
             
-                    valid_bar.set_postfix(valid_loss = valid_loss.item(), 
-                                            valid_batch_acc = valid_dis_acc,
-                                            )
+                with torch.no_grad():
+                    if self.args.aware:
+                        dis_out  = self.model(images, crop_label) 
+                    else:
+                        dis_out  = self.model(images) 
+                    
+                    # loss 계산
+                    dis_loss = self.criterion(dis_out, dis_label)
+                    valid_loss = dis_loss
+
+                    dis_out = torch.argmax(dis_out, dim=1).detach().cpu()
+                    dis_label =dis_label.detach().cpu()
+                    
+                    pred_list.extend(dis_out.numpy())
+                    label_list.extend(dis_label.numpy())
+
+                # accuracy_score(dis_label, dis_out)
+                dis_acc = (dis_out == dis_label).to(torch.float).numpy().mean()
+
+                # print(dis_acc, crop_acc)
+                valid_dis_acc_list.append(dis_acc)
+
+                valid_losses.append(valid_loss.item())
+                valid_dis_acc = np.mean(valid_dis_acc_list)
+        
+                valid_bar.set_postfix(valid_loss = valid_loss.item(), 
+                                        valid_batch_acc = valid_dis_acc,
+                                        )
         return valid_losses, label_list, pred_list
 
     

@@ -11,7 +11,7 @@ from dataloader import DisDataset
 train_df = pd.read_csv(r"train_df.csv")
 valid_df = pd.read_csv(r"valid_df.csv")
 save_path = os.getcwd()
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu") 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
 
 args = EasyDict(
     {
@@ -33,7 +33,7 @@ args = EasyDict(
      ## Base Parameter
      'img_size':224,
      'test_size':224,
-     'BATCH_SIZE':16,
+     'BATCH_SIZE':100,
      'epochs':200,
      'optimizer':'Lamb',
      'lr':3e-5,
