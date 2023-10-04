@@ -1,7 +1,7 @@
 import re
 import os
 import random
-import cv2
+# import cv2
 import numpy as np
 import pandas as pd
 import torch
