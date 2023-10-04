@@ -50,20 +50,20 @@ class DisDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         data = self.files.iloc[index, ]
         
-        crop_label = torch.zeros((11))
-        crop_label[data['crop']] += 1
-        disease_label = torch.zeros((30))
-        disease_label[data['disease']] += 1
-
         image_path = os.path.join(self.dir_root, data['path'])
         image = Image.open(image_path).convert('RGB')
-        sample = {'image': image, 'crop_label': crop_label, 'disease_label':torch.argmax(disease_label)}
 
         # train mode transform
         if self.mode == 'train':
+            crop_label = torch.zeros((11))
+            crop_label[data['crop']] += 1
+            disease_label = torch.zeros((30))
+            disease_label[data['disease']] += 1
+            sample = {'image': image, 'crop_label': crop_label, 'disease_label':torch.argmax(disease_label)}
             sample['image'] = self.train_mode(sample['image'])
 
         # test mode transform
         elif self.mode == 'test' or self.mode == 'valid':
+            sample = {'image': image}
             sample['image'] = self.test_mode(sample['image'])
         return sample
